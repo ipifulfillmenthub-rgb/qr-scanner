@@ -3,29 +3,63 @@
 <head>
   <title>QR Scanner</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      margin-top: 30px;
+    }
+    #reader {
+      margin: auto;
+      width: 300px;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px;
+    }
+  </style>
 </head>
 <body>
+
   <h2>Scan QR Code</h2>
-  <div id="reader" style="width:300px;"></div>
+  <div id="reader"></div>
   <p id="status">Waiting for scan...</p>
+  <button onclick="startScanner()">Start Scanner</button>
 
   <script>
-    function onScanSuccess(decodedText) {
-      document.getElementById("status").innerText = "Logging...";
+    let scanner;
 
-      fetch(decodedText)
-        .then(() => {
-          document.getElementById("status").innerText = "✅ Scanned!";
-        })
-        .catch(() => {
-          document.getElementById("status").innerText = "❌ Error";
-        });
+    function startScanner() {
+      document.getElementById("status").innerText = "Starting camera...";
+
+      scanner = new Html5QrcodeScanner("reader", {
+        fps: 10,
+        qrbox: 250
+      });
+
+      scanner.render(onScanSuccess);
     }
 
-    new Html5QrcodeScanner("reader", {
-      fps: 10,
-      qrbox: 250
-    }).render(onScanSuccess);
+    function onScanSuccess(decodedText) {
+      // stop scanner after one scan
+      scanner.clear();
+
+      document.getElementById("status").innerText = "Logging...";
+
+      fetch(decodedText, { method: "GET", mode: "no-cors" })
+        .then(() => {
+          document.getElementById("status").innerText = "✅ Scanned & Logged!";
+        })
+        .catch(() => {
+          document.getElementById("status").innerText = "❌ Error logging";
+        });
+    }
   </script>
+
 </body>
 </html>
