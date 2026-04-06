@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Parcel QR Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { 
+      margin: 0; padding: 0; font-family: Arial; text-align: center;
+      background-color: #f4f4f4; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; height: 100vh; 
+    }
+    #reader { width: 100%; max-width: 400px; }
+    #status { margin-top: 15px; font-size: 18px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Parcel QR Scanner</h2>
+  <div id="reader"></div>
+  <p id="status">Tap anywhere to start scanning...</p>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmPEPxrNQY2GBWMIg2oF1lX1_xtgfZuuyZUXvkVtQq8mKLJBeyHht9_-ruaZtJtJXCGA/exec";
+    let html5Qr;
+    const scannedSet = new Set(); // store already scanned IDs temporarily
+
+    function startScanner() {
+      document.getElementById("status").innerText = "Camera starting...";
+      if (html5Qr) return; // already started
+
+      html5Qr = new Html5Qrcode("reader");
+
+      const config = { fps: 10, qrbox: { width: 300, height: 300 } };
+
+      html5Qr.start(
+        { facingMode: "environment" },
+        config,
+        decodedText => {
+          if (scannedSet.has(decodedText)) return; // skip duplicates
+          scannedSet.add(decodedText);
+          document.getElementById("status").innerText = "Logging: " + decodedText;
+
+          // send to Apps Script
+          const url = SCRIPT_URL + "?id=" + encodeURIComponent(decodedText);
+          fetch(url, { method: "GET", mode: "no-cors" })
+            .then(() => {
+              document.getElementById("status").innerText = "✅ Logged: " + decodedText;
+              // auto-clear from set after 5 seconds to allow re-scan later
+              setTimeout(() => scannedSet.delete(decodedText), 5000);
+            })
+            .catch(() => {
+              document.getElementById("status").innerText = "❌ Error logging";
+              setTimeout(() => scannedSet.delete(decodedText), 5000);
+            });
+        },
+        errorMessage => {
+          // ignore scan errors, optional: console.log(errorMessage);
+        }
+      ).catch(err => {
+        document.getElementById("status").innerText = "❌ Camera error: " + err;
+      });
+    }
+
+    // start scanner automatically after first tap (required by mobile browsers)
+    document.body.addEventListener("click", startScanner, { once: true });
+  </script>
+</body>
+</html>
