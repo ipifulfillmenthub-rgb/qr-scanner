@@ -1,33 +1,33 @@
-<script>
-  let scanner;
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <h2>QR Scanner</h2>
+  <div id="reader" style="width:300px;"></div>
+  <p id="status">Waiting for scan...</p>
+  <button onclick="startScanner()">Start Scanner</button>
 
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmPEPxrNQY2GBWMIg2oF1lX1_xtgfZuuyZUXvkVtQq8mKLJBeyHht9_-ruaZtJtJXCGA/exec";
+  <script>
+    let scanner;
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmPEPxrNQY2GBWMIg2oF1lX1_xtgfZuuyZUXvkVtQq8mKLJBeyHht9_-ruaZtJtJXCGA/exec";
 
-  function startScanner() {
-    document.getElementById("status").innerText = "Starting camera...";
+    function startScanner() {
+      document.getElementById("status").innerText = "Starting camera...";
+      scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+      scanner.render(onScanSuccess);
+    }
 
-    scanner = new Html5QrcodeScanner("reader", {
-      fps: 10,
-      qrbox: 250
-    });
-
-    scanner.render(onScanSuccess);
-  }
-
-  function onScanSuccess(decodedText) {
-    scanner.clear();
-
-    document.getElementById("status").innerText = "Logging...";
-
-    const url = SCRIPT_URL + "?id=" + encodeURIComponent(decodedText);
-
-    fetch(url, { method: "GET", mode: "no-cors" })
-      .then(() => {
-        document.getElementById("status").innerText =
-          "✅ Logged: " + decodedText;
-      })
-      .catch(() => {
-        document.getElementById("status").innerText = "❌ Error logging";
-      });
-  }
-</script>
+    function onScanSuccess(decodedText) {
+      scanner.clear();
+      document.getElementById("status").innerText = "Logging...";
+      const url = SCRIPT_URL + "?id=" + encodeURIComponent(decodedText);
+      fetch(url, { method: "GET", mode: "no-cors" })
+        .then(() => { document.getElementById("status").innerText = "✅ Logged: " + decodedText; })
+        .catch(() => { document.getElementById("status").innerText = "❌ Error logging"; });
+    }
+  </script>
+</body>
+</html>
