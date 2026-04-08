@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Parcel QR Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { 
+      margin: 0; padding: 0; font-family: Arial; text-align: center;
+      background-color: #f4f4f4; display: flex; flex-direction: column;
+      align-items: center; height: 100vh; 
+    }
+
+    h2 { margin-top: 20px; }
+
+    #buttons {
+      margin: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    button {
+      padding: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+    }
+
+    button.active {
+      background-color: #2ecc71;
+    }
+
+    #reader { width: 100%; max-width: 400px; }
+    #status { margin-top: 15px; font-size: 18px; font-weight: bold; }
+  </style>
+</head>
+
+<body>
+  <h2>Parcel QR Scanner</h2>
+
+  <div id="buttons">
+    <button onclick="selectCourier(this, 'Lazada - J&T')">Lazada - J&T</button>
+    <button onclick="selectCourier(this, 'Lazada - Flash')">Lazada - Flash</button>
+    <button onclick="selectCourier(this, 'Shopee - SPX')">Shopee - SPX</button>
+    <button onclick="selectCourier(this, 'Tiktok - J&T')">Tiktok - J&T</button>
+  </div>
+
+  <div id="reader"></div>
+  <p id="status">Select courier first</p>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbye-OHq6qECoBEP3QrNowSsMqvYO7OwQ4YEgsrBJsDsjBj899p0oSA3EQc6vlGhtRKw0w/exec";
+
+    let html5Qr;
+    let selectedCourier = "";
+    const scannedSet = new Set();
+
+    function selectCourier(btn, courier) {
+      selectedCourier = courier;
+      // Highlight active button
+      document.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("status").innerText = "Selected: " + courier + " (Tap to start scan)";
+    }
+
+    function startScanner() {
+      if (!selectedCourier) {
+        document.getElementById("status").innerText = "⚠️ Select courier first!";
+        return;
+      }
+
+      if (html5Qr) return;
+
+      document.getElementById("status").innerText = "Camera starting...";
+
+      html5Qr = new Html5Qrcode("reader");
+
+      const config = { fps: 10, qrbox: { width: 300, height: 300 } };
+
+      html5Qr.start(
+        { facingMode: "environment" },
+        config,
+        decodedText => {
+          if (scannedSet.has(decodedText)) return;
+          scannedSet.add(decodedText);
+
+          document.getElementById("status").innerText =
+            "Logging: " + decodedText + " (" + selectedCourier + ")";
+
+          const url = SCRIPT_URL +
+            "?id=" + encodeURIComponent(decodedText) +
+            "&courier=" + encodeURIComponent(selectedCourier);
+
+          console.log("Sending:", url); // optional debug
+
+          fetch(url, { method: "GET", mode: "no-cors" })
+            .then(() => {
+              document.getElementById("status").innerText =
+                "✅ Logged: " + decodedText + " (" + selectedCourier + ")";
+              if (navigator.vibrate) navigator.vibrate(100);
+              setTimeout(() => scannedSet.delete(decodedText), 5000);
+            })
+            .catch(() => {
+              document.getElementById("status").innerText = "❌ Error logging";
+              setTimeout(() => scannedSet.delete(decodedText), 5000);
+            });
+        }
+      ).catch(err => {
+        document.getElementById("status").innerText = "❌ Camera error: " + err;
+      });
+    }
+
+    // Start scanner after first tap (required on mobile)
+    document.body.addEventListener("click", startScanner, { once: true });
+  </script>
+</body>
+</html>
